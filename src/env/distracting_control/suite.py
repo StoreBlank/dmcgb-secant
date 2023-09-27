@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """A collection of MuJoCo-based Reinforcement Learning environments.
 
 The suite provides a similar API to the original dm_control suite.
@@ -22,10 +21,10 @@ used in the original paper. Each distraction wrapper can be used independently
 though.
 """
 try:
-  from dm_control import suite  # pylint: disable=g-import-not-at-top
-  from dm_control.suite.wrappers import pixels  # pylint: disable=g-import-not-at-top
+    from dm_control import suite  # pylint: disable=g-import-not-at-top
+    from dm_control.suite.wrappers import pixels  # pylint: disable=g-import-not-at-top
 except ImportError:
-  suite = None
+    suite = None
 
 from env.distracting_control import background
 from env.distracting_control import camera
@@ -34,7 +33,7 @@ from env.distracting_control import suite_utils
 
 
 def is_available():
-  return suite is not None
+    return suite is not None
 
 
 def load(domain_name,
@@ -52,7 +51,7 @@ def load(domain_name,
          render_kwargs=None,
          pixels_only=True,
          pixels_observation_key="pixels"):
-  """Returns an environment from a domain name, task name and optional settings.
+    """Returns an environment from a domain name, task name and optional settings.
 
   ```python
   env = suite.load('cartpole', 'balance')
@@ -90,65 +89,65 @@ def load(domain_name,
   Returns:
     The requested environment.
   """
-  if not is_available():
-    raise ImportError("dm_control module is not available. Make sure you "
-                      "follow the installation instructions from the "
-                      "dm_control package.")
+    if not is_available():
+        raise ImportError("dm_control module is not available. Make sure you "
+                          "follow the installation instructions from the "
+                          "dm_control package.")
 
-  assert isinstance(difficulty, float), f'intensity must be a float'
-  assert difficulty >= 0 and difficulty <= 1, f'intensity must be in the [0,1] interval'
-  assert str(difficulty) in suite_utils.DIFFICULTY_NUM_VIDEOS.keys(), \
-    f'intensity has only been implemented for the following values: {suite_utils.DIFFICULTY_NUM_VIDEOS.keys()}'
-  render_kwargs = render_kwargs or {}
-  if "camera_id" not in render_kwargs:
-    render_kwargs["camera_id"] = 2 if domain_name == "quadruped" else 0
+    assert isinstance(difficulty, float), f'intensity must be a float'
+    assert difficulty >= 0 and difficulty <= 1, f'intensity must be in the [0,1] interval'
+    assert str(difficulty) in suite_utils.DIFFICULTY_NUM_VIDEOS.keys(), \
+      f'intensity has only been implemented for the following values: {suite_utils.DIFFICULTY_NUM_VIDEOS.keys()}'
+    render_kwargs = render_kwargs or {}
+    if "camera_id" not in render_kwargs:
+        render_kwargs["camera_id"] = 2 if domain_name == "quadruped" else 0
 
-  env = suite.load(
-      domain_name,
-      task_name,
-      task_kwargs=task_kwargs,
-      environment_kwargs=environment_kwargs,
-      visualize_reward=visualize_reward)
+    env = suite.load(domain_name,
+                     task_name,
+                     task_kwargs=task_kwargs,
+                     environment_kwargs=environment_kwargs,
+                     visualize_reward=visualize_reward)
 
-  # Apply background distractions.
-  if difficulty:
-    final_background_kwargs = dict()
-    num_videos = suite_utils.DIFFICULTY_NUM_VIDEOS[str(difficulty)]
-    final_background_kwargs.update(
-        suite_utils.get_background_kwargs(domain_name, num_videos, dynamic,
-                                          background_dataset_paths,
-                                          background_dataset_videos))
-    if background_kwargs:
-      # Overwrite kwargs with those passed here.
-      final_background_kwargs.update(background_kwargs)
-    env = background.DistractingBackgroundEnv(env, **final_background_kwargs)
+    # Apply background distractions.
+    if difficulty:
+        final_background_kwargs = dict()
+        num_videos = suite_utils.DIFFICULTY_NUM_VIDEOS[str(difficulty)]
+        final_background_kwargs.update(
+            suite_utils.get_background_kwargs(domain_name, num_videos, dynamic,
+                                              background_dataset_paths,
+                                              background_dataset_videos))
+        if background_kwargs:
+            # Overwrite kwargs with those passed here.
+            final_background_kwargs.update(background_kwargs)
+        env = background.DistractingBackgroundEnv(env,
+                                                  **final_background_kwargs)
 
-  # Apply camera distractions.
-  if difficulty:
-    final_camera_kwargs = dict(camera_id=render_kwargs["camera_id"])
-    final_camera_kwargs.update(
-        suite_utils.get_camera_kwargs(domain_name, difficulty, dynamic))
-    if camera_kwargs:
-      # Overwrite kwargs with those passed here.
-      final_camera_kwargs.update(camera_kwargs)
-    env = camera.DistractingCameraEnv(env, **final_camera_kwargs)
+    # Apply camera distractions.
+    if difficulty:
+        final_camera_kwargs = dict(camera_id=render_kwargs["camera_id"])
+        final_camera_kwargs.update(
+            suite_utils.get_camera_kwargs(domain_name, difficulty, dynamic))
+        if camera_kwargs:
+            # Overwrite kwargs with those passed here.
+            final_camera_kwargs.update(camera_kwargs)
+        env = camera.DistractingCameraEnv(env, **final_camera_kwargs)
 
-  # Apply color distractions.
-  if difficulty:
-    final_color_kwargs = dict()
-    final_color_kwargs.update(suite_utils.get_color_kwargs(difficulty, dynamic))
-    if color_kwargs:
-      # Overwrite kwargs with those passed here.
-      final_color_kwargs.update(color_kwargs)
-    env = color.DistractingColorEnv(env, **final_color_kwargs)
+    # Apply color distractions.
+    if difficulty:
+        final_color_kwargs = dict()
+        final_color_kwargs.update(
+            suite_utils.get_color_kwargs(difficulty, dynamic))
+        if color_kwargs:
+            # Overwrite kwargs with those passed here.
+            final_color_kwargs.update(color_kwargs)
+        env = color.DistractingColorEnv(env, **final_color_kwargs)
 
-  # Apply Pixel wrapper after distractions. This is needed to ensure the
-  # changes from the distraction wrapper are applied to the MuJoCo environment
-  # before the rendering occurs.
-  env = pixels.Wrapper(
-      env,
-      pixels_only=pixels_only,
-      render_kwargs=render_kwargs,
-      observation_key=pixels_observation_key)
+    # Apply Pixel wrapper after distractions. This is needed to ensure the
+    # changes from the distraction wrapper are applied to the MuJoCo environment
+    # before the rendering occurs.
+    env = pixels.Wrapper(env,
+                         pixels_only=pixels_only,
+                         render_kwargs=render_kwargs,
+                         observation_key=pixels_observation_key)
 
-  return env
+    return env

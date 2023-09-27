@@ -7,9 +7,11 @@ import random
 import augmentations
 import subprocess
 from datetime import datetime
+from PIL import Image
 
 
 class eval_mode(object):
+
     def __init__(self, *models):
         self.models = models
 
@@ -27,9 +29,8 @@ class eval_mode(object):
 
 def soft_update_params(net, target_net, tau):
     for param, target_param in zip(net.parameters(), target_net.parameters()):
-        target_param.data.copy_(
-            tau * param.data + (1 - tau) * target_param.data
-        )
+        target_param.data.copy_(tau * param.data +
+                                (1 - tau) * target_param.data)
 
 
 def cat(x, y, axis=0):
@@ -46,9 +47,13 @@ def set_seed_everywhere(seed):
 
 def write_info(args, fp):
     data = {
-        'timestamp': str(datetime.now()),
-        'git': subprocess.check_output(["git", "describe", "--always"]).strip().decode(),
-        'args': vars(args)
+        'timestamp':
+        str(datetime.now()),
+        'git':
+        subprocess.check_output(["git", "describe",
+                                 "--always"]).strip().decode(),
+        'args':
+        vars(args)
     }
     with open(fp, 'w') as f:
         json.dump(data, f, indent=4, separators=(',', ': '))
@@ -91,7 +96,12 @@ def prefill_memory(obses, capacity, obs_shape):
 class ReplayBuffer(object):
     """Buffer to store environment transitions"""
 
-    def __init__(self, obs_shape, action_shape, capacity, batch_size, prefill=True):
+    def __init__(self,
+                 obs_shape,
+                 action_shape,
+                 capacity,
+                 batch_size,
+                 prefill=True):
         self.capacity = capacity
         self.batch_size = batch_size
 
@@ -121,9 +131,9 @@ class ReplayBuffer(object):
     def _get_idxs(self, n=None):
         if n is None:
             n = self.batch_size
-        return np.random.randint(
-            0, self.capacity if self.full else self.idx, size=n
-        )
+        return np.random.randint(0,
+                                 self.capacity if self.full else self.idx,
+                                 size=n)
 
     def _encode_obses(self, idxs):
         obses, next_obses = [], []
@@ -160,6 +170,8 @@ class ReplayBuffer(object):
 
     def sample_drq(self, n=None, pad=4):
         obs, actions, rewards, next_obs, not_dones = self.__sample__(n=n)
+        obs = augmentations.random_crop(obs)
+        next_obs = augmentations.random_crop(next_obs)
         obs = augmentations.random_shift(obs, pad)
         next_obs = augmentations.random_shift(next_obs, pad)
 
@@ -180,6 +192,7 @@ class ReplayBuffer(object):
 
 
 class LazyFrames(object):
+
     def __init__(self, frames, extremely_lazy=True):
         self._frames = frames
         self._extremely_lazy = extremely_lazy
@@ -215,10 +228,10 @@ class LazyFrames(object):
         if self.extremely_lazy:
             return len(self._frames)
         frames = self._force()
-        return frames.shape[0]//3
+        return frames.shape[0] // 3
 
     def frame(self, i):
-        return self._force()[i*3:(i+1)*3]
+        return self._force()[i * 3:(i + 1) * 3]
 
 
 def count_parameters(net, as_int=False):
@@ -227,3 +240,13 @@ def count_parameters(net, as_int=False):
     if as_int:
         return count
     return f'{count:,}'
+
+
+def save_image(img, path):
+    """
+    img: (C, H, W)
+    """
+    img = img.round().clip(0, 255).astype(np.uint8)
+    img = np.moveaxis(img, 0, -1)
+    img = Image.fromarray(img)
+    img.save(path)

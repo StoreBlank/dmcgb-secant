@@ -3,6 +3,7 @@ import json
 import os
 import torch
 from termcolor import colored
+import wandb
 
 FORMAT_CONFIG = {
     'rl': {
@@ -74,10 +75,12 @@ class MetersGroup(object):
             pieces.append(self._format(disp_key, value, ty))
         print('| %s' % (' | '.join(pieces)))
 
-    def dump(self, step, prefix):
+    def dump(self, step, prefix, use_wandb=False):
         if len(self._meters) == 0:
             return
         data = self._prime_meters()
+        if use_wandb:
+            wandb.log({f'{prefix}': data}, step=step)
         data['step'] = step
         self._dump_to_file(data)
         self._dump_to_console(data, prefix)
@@ -85,7 +88,7 @@ class MetersGroup(object):
 
 
 class Logger(object):
-    def __init__(self, log_dir, config='rl'):
+    def __init__(self, log_dir, config='rl', use_wandb=False):
         self._log_dir = log_dir
         self._train_mg = MetersGroup(
             os.path.join(log_dir, 'train.log'),
@@ -95,6 +98,7 @@ class Logger(object):
             os.path.join(log_dir, 'eval.log'),
             formating=FORMAT_CONFIG[config]['eval']
         )
+        self._use_wandb = use_wandb
 
     def log(self, key, value, step, n=1):
         assert key.startswith('train') or key.startswith('eval')
@@ -113,5 +117,5 @@ class Logger(object):
                 self.log_histogram(key + '_b_g', param.bias.grad.data, step)
 
     def dump(self, step):
-        self._train_mg.dump(step, 'train')
-        self._eval_mg.dump(step, 'eval')
+        self._train_mg.dump(step, 'train', use_wandb=self._use_wandb)
+        self._eval_mg.dump(step, 'eval', use_wandb=self._use_wandb)
